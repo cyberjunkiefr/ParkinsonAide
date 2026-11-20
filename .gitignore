@@ -1,0 +1,6 @@
+/target
+
+# Vosk : bibliothèque et modèles (gros fichiers tiers, à télécharger)
+/vosk/
+/vosk_fr/
+/vosk_small_fr/
