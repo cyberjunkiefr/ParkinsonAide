@@ -14,6 +14,8 @@ const RECORD_TAIL: Duration = Duration::from_millis(500);
 
 const BACKGROUND: Color32 = Color32::from_rgb(150, 150, 150);
 const PURPLE: Color32 = Color32::from_rgb(98, 30, 140);
+const GREEN: Color32 = Color32::from_rgb(30, 160, 50);
+const TIPS_TEXT: Color32 = Color32::from_rgb(248, 248, 248);
 const TEXT: Color32 = Color32::from_rgb(20, 20, 20);
 const CAPTION: Color32 = Color32::from_rgb(120, 120, 120);
 const PHRASE_FONT: f32 = 24.0;
@@ -94,6 +96,16 @@ fn row_frame() -> egui::Frame {
         .stroke(Stroke::new(4.0_f32, PURPLE))
         .inner_margin(egui::Margin::symmetric(16.0, 6.0))
         .rounding(Rounding::same(12.0))
+}
+
+fn score_color(score: f32) -> Color32 {
+    if score >= 80.0 {
+        Color32::from_rgb(0, 140, 60)
+    } else if score >= 50.0 {
+        Color32::from_rgb(210, 130, 0)
+    } else {
+        Color32::from_rgb(190, 0, 0)
+    }
 }
 
 fn file_name(path: &Option<PathBuf>) -> String {
@@ -679,14 +691,7 @@ impl ParkinsonApp {
                     ui.set_width(100.0);
                     if let Some(r) = self.results.get(&self.offset) {
                         Self::caption(ui, "Score");
-                        let color = if r.score >= 80.0 {
-                            Color32::from_rgb(0, 140, 60)
-                        } else if r.score >= 50.0 {
-                            Color32::from_rgb(210, 130, 0)
-                        } else {
-                            Color32::from_rgb(190, 0, 0)
-                        };
-                        ui.label(RichText::new(format!("{:.0} %", r.score)).size(30.0).strong().color(color));
+                        ui.label(RichText::new(format!("{:.0} %", r.score)).size(30.0).strong().color(score_color(r.score)));
                     }
                 });
 
@@ -721,10 +726,76 @@ impl ParkinsonApp {
                         recording,
                         "Maintenir enfoncé pendant la lecture de la phrase 1",
                     );
-                    let held = rec.is_pointer_button_down_on();
+                    // egui « oublie » l'appui sur un bouton après ~0,8 s (ce n'est plus un clic) :
+                    // on démarre sur l'appui du bouton, puis on suit l'état du bouton de la souris.
+                    let held = if matches!(self.rec, RecState::Recording { .. }) {
+                        ctx.input(|i| i.pointer.primary_down())
+                    } else {
+                        rec.is_pointer_button_down_on()
+                    };
                     self.handle_record_button(held, ctx);
                 });
             });
+        });
+    }
+
+    /// Conseils pour le patient (en bas à gauche).
+    fn tips(ui: &mut Ui) {
+        const TIPS: [&str; 4] = [
+            "Inspirez bien avant chaque phrase.",
+            "Parlez plus fort que d'habitude : ce qui vous semble « trop fort » est souvent juste le bon volume.",
+            "Faites-le tous les jours, 10 à 15 minutes, debout ou bien assis droit.",
+            "Un orthophoniste peut proposer un programme adapté (par exemple la méthode LSVT LOUD, conçue pour la maladie de Parkinson).",
+        ];
+        ui.spacing_mut().item_spacing.y = 4.0;
+        ui.label(RichText::new("Conseils pour l'exercice").size(20.0).strong().color(TIPS_TEXT));
+        ui.add_space(6.0);
+        // Liste à puces, lignes suivantes alignées sous le texte (retrait suspendu).
+        for t in TIPS {
+            ui.horizontal_top(|ui| {
+                ui.spacing_mut().item_spacing.x = 0.0;
+                ui.add_sized([22.0, 20.0], egui::Label::new(RichText::new("•").size(18.0).color(TIPS_TEXT)));
+                ui.add(egui::Label::new(RichText::new(t).size(18.0).color(TIPS_TEXT)).wrap());
+            });
+        }
+    }
+
+    /// Moyenne des scores des phrases enregistrées (champ ScoreTotal, en bas à droite).
+    fn score_total(&self, ui: &mut Ui) {
+        let scores: Vec<f32> = self
+            .results
+            .iter()
+            .filter(|(i, _)| **i < self.phrases.len())
+            .map(|(_, r)| r.score)
+            .collect();
+        let average = (!scores.is_empty()).then(|| scores.iter().sum::<f32>() / scores.len() as f32);
+
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+            egui::Frame::none()
+                .fill(Color32::WHITE)
+                .stroke(Stroke::new(7.0_f32, GREEN))
+                .inner_margin(egui::Margin::symmetric(16.0, 6.0))
+                .rounding(Rounding::same(14.0))
+                .show(ui, |ui| {
+                    ui.set_width(260.0);
+                    ui.set_min_height(64.0);
+                    ui.vertical(|ui| {
+                        Self::caption(ui, "Score total");
+                        match average {
+                            Some(a) => {
+                                ui.label(RichText::new(format!("{a:.0} %")).size(30.0).strong().color(score_color(a)));
+                                ui.label(
+                                    RichText::new(format!("sur {} / {} phrases", scores.len(), self.phrases.len()))
+                                        .size(13.0)
+                                        .color(CAPTION),
+                                );
+                            }
+                            None => {
+                                ui.label(RichText::new("—").size(30.0).color(CAPTION));
+                            }
+                        }
+                    });
+                });
         });
     }
 
@@ -776,6 +847,15 @@ impl eframe::App for ParkinsonApp {
                     for n in 2..=PHRASE_COUNT {
                         self.phrase_row(ui, n);
                     }
+                    ui.add_space(4.0);
+                    ui.horizontal_top(|ui| {
+                        let tips_w = (ui.available_width() - 320.0).max(200.0);
+                        ui.vertical(|ui| {
+                            ui.set_width(tips_w);
+                            Self::tips(ui);
+                        });
+                        self.score_total(ui);
+                    });
                 });
             });
     }

@@ -81,10 +81,3 @@ Information about the configuration Seeed studio ReSpeaker XVF3800 microphone ca
 
   
 
-  
-
-  ​                																																																																																																																																						
-
-
-
-##### 

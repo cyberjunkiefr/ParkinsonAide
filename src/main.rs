@@ -9,7 +9,8 @@ mod stt;
 fn main() -> eframe::Result<()> {
     let mut viewport = egui::ViewportBuilder::default()
         .with_title("ParkinsonAide")
-        .with_inner_size([1100.0, 860.0])
+        .with_inner_size([1100.0, 900.0])
+        .with_maximized(true)
         .with_min_inner_size([820.0, 640.0]);
     if let Ok(img) = image::load_from_memory(include_bytes!("../icons/record.png")) {
         let img = img.to_rgba8();
