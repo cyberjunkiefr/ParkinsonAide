@@ -16,6 +16,7 @@ const BACKGROUND: Color32 = Color32::from_rgb(150, 150, 150);
 const PURPLE: Color32 = Color32::from_rgb(98, 30, 140);
 const GREEN: Color32 = Color32::from_rgb(30, 160, 50);
 const TIPS_TEXT: Color32 = Color32::from_rgb(248, 248, 248);
+const BOLD: &str = "bold";
 const TEXT: Color32 = Color32::from_rgb(20, 20, 20);
 const CAPTION: Color32 = Color32::from_rgb(120, 120, 120);
 const PHRASE_FONT: f32 = 24.0;
@@ -98,6 +99,27 @@ fn row_frame() -> egui::Frame {
         .rounding(Rounding::same(12.0))
 }
 
+/// Police grasse (les polices intégrées d'egui n'en ont pas) : Arial Bold de Windows.
+fn install_bold_font(ctx: &Context) {
+    let mut fonts = egui::FontDefinitions::default();
+    let mut family: Vec<String> = Vec::new();
+    for path in ["C:/Windows/Fonts/arialbd.ttf", "C:/Windows/Fonts/segoeuib.ttf"] {
+        if let Ok(bytes) = std::fs::read(path) {
+            fonts.font_data.insert("bold".into(), egui::FontData::from_owned(bytes));
+            family.push("bold".into());
+            break;
+        }
+    }
+    // Repli sur les polices normales si aucune police grasse n'est trouvée.
+    family.extend(fonts.families[&egui::FontFamily::Proportional].iter().cloned());
+    fonts.families.insert(egui::FontFamily::Name(BOLD.into()), family);
+    ctx.set_fonts(fonts);
+}
+
+fn bold(size: f32) -> FontId {
+    FontId::new(size, egui::FontFamily::Name(BOLD.into()))
+}
+
 fn score_color(score: f32) -> Color32 {
     if score >= 80.0 {
         Color32::from_rgb(0, 140, 60)
@@ -119,6 +141,7 @@ impl ParkinsonApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let ctx = &cc.egui_ctx;
         ctx.set_visuals(egui::Visuals::light());
+        install_bold_font(ctx);
         ctx.style_mut(|s| {
             s.text_styles.insert(egui::TextStyle::Body, FontId::proportional(17.0));
             s.text_styles.insert(egui::TextStyle::Button, FontId::proportional(17.0));
@@ -748,14 +771,15 @@ impl ParkinsonApp {
             "Un orthophoniste peut proposer un programme adapté (par exemple la méthode LSVT LOUD, conçue pour la maladie de Parkinson).",
         ];
         ui.spacing_mut().item_spacing.y = 4.0;
-        ui.label(RichText::new("Conseils pour l'exercice").size(20.0).strong().color(TIPS_TEXT));
-        ui.add_space(6.0);
-        // Liste à puces, lignes suivantes alignées sous le texte (retrait suspendu).
+        ui.add_space(14.0);
+        ui.label(RichText::new("Conseils pour l'exercice").font(bold(21.0)).color(TIPS_TEXT));
+        ui.add_space(10.0);
+        // Liste à puces en gras, lignes suivantes alignées sous le texte (retrait suspendu).
         for t in TIPS {
             ui.horizontal_top(|ui| {
                 ui.spacing_mut().item_spacing.x = 0.0;
-                ui.add_sized([22.0, 20.0], egui::Label::new(RichText::new("•").size(18.0).color(TIPS_TEXT)));
-                ui.add(egui::Label::new(RichText::new(t).size(18.0).color(TIPS_TEXT)).wrap());
+                ui.add_sized([22.0, 22.0], egui::Label::new(RichText::new("•").font(bold(19.0)).color(TIPS_TEXT)));
+                ui.add(egui::Label::new(RichText::new(t).font(bold(19.0)).color(TIPS_TEXT)).wrap());
             });
         }
     }
