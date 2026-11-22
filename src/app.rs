@@ -173,9 +173,12 @@ impl ParkinsonApp {
             config,
         };
 
-        // Dernier fichier utilisé (au premier lancement : phrases.txt s'il existe).
-        let first = app.config.last_file.clone().or_else(|| {
-            let mut bases: Vec<PathBuf> = std::env::current_dir().into_iter().collect();
+        // Dernier fichier utilisé (au premier lancement : phrases.txt s'il existe,
+        // d'abord dans Documents\ParkinsonAide où l'installateur le dépose).
+        let first = app.config.last_file.clone().filter(|p| p.exists()).or_else(|| {
+            let mut bases: Vec<PathBuf> =
+                dirs::document_dir().map(|d| d.join("ParkinsonAide")).into_iter().collect();
+            bases.extend(std::env::current_dir());
             if let Ok(exe) = std::env::current_exe() {
                 bases.extend(exe.ancestors().skip(1).take(4).map(Path::to_path_buf));
             }

@@ -72,6 +72,24 @@ the Vosk DLLs, a model folder and `phrases.txt` into one folder.
 Speech recognition is enabled by the default `stt` feature. `cargo build --no-default-features` builds
 without Vosk, for working on the UI without the library.
 
+## Installer
+
+```
+pwsh installer\build.ps1
+```
+
+This builds the release exe and compiles `installer\ParkinsonAide.iss` with
+[Inno Setup 6](https://jrsoftware.org/isinfo.php) (`winget install JRSoftware.InnoSetup`). The result is
+`target\installer\ParkinsonAide-Setup-<version>.exe`, about 50 MB, with French installer screens.
+
+- Installs for the current user in `%LOCALAPPDATA%\Programs\ParkinsonAide`, so no administrator rights are needed.
+- Includes the app, the Vosk DLLs and the small French model. The large model is not included.
+- Copies `phrases.txt` to `Documents\ParkinsonAide`, where the user can edit and save it. An existing copy is never overwritten.
+- Adds a Start-menu shortcut, an optional desktop shortcut and an uninstaller.
+
+The C runtime is linked statically (`.cargo/config.toml`), so the target PC does not need the Visual C++ Redistributable.
+The version number comes from `Cargo.toml`.
+
 ## Usage
 
 1. Plug in the microphone. A ReSpeaker/XVF3800 is selected automatically if one is connected.

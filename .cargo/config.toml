@@ -1,0 +1,4 @@
+# Lie le runtime C statiquement : l'exe n'a pas besoin de VCRUNTIME140.dll
+# (Visual C++ Redistributable) sur le PC du patient.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
